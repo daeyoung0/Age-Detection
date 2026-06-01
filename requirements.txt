@@ -1,0 +1,28 @@
+# =====================================================
+# Age Group Classification — Ensemble Model
+# Python 3.10 이상 권장 (개발 환경: Python 3.11)
+# =====================================================
+
+# ── GPU 설치 (CUDA 12.1, 권장) ─────────────────────
+# pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 \
+#     --index-url https://download.pytorch.org/whl/cu121
+#
+# ── CPU 전용 ────────────────────────────────────────
+# pip install torch==2.5.1 torchvision==0.20.1
+
+# ── 공통 패키지 (pip install -r requirements.txt) ───
+
+# 모델 / 학습
+torch>=2.5.1
+torchvision>=0.20.1
+timm>=0.9.0               # 0.8.x dev 버전과 호환 (compat 패치 포함)
+
+# 얼굴 감지
+retinaface-pytorch==0.0.7
+
+# 이미지 처리
+Pillow>=10.0.0
+opencv-python>=4.8.0
+
+# 수치 연산
+numpy>=1.24.0
