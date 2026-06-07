@@ -19,6 +19,8 @@ timm>=0.9.0               # 0.8.x dev 버전과 호환 (compat 패치 포함)
 
 # 얼굴 감지
 retinaface-pytorch==0.0.7
+insightface>=0.7.3
+onnxruntime>=1.18.0
 
 # 이미지 처리
 Pillow>=10.0.0

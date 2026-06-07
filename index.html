@@ -313,7 +313,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     item_name: currentItemName,
-                    price: currentPrice
+                    price: currentPrice,
+                    quantity: 1,
+                    payment_method: payMethod
                 })
             });
 
@@ -322,7 +324,7 @@
 
             posStatus.innerText = "결제 완료!";
 
-            addHistoryLog(data.item, currentPrice, data.matched_age_group, payMethod);
+            addHistoryLog(data.item, currentPrice, data.matched_age_group, data.matched_gender, payMethod);
 
             setTimeout(clearOrder, 100);
 
@@ -335,7 +337,7 @@
     }
 
     // 영수증 우측 리스트 누적 출력 함수
-    function addHistoryLog(item, price, ageGroup, method) {
+    function addHistoryLog(item, price, ageGroup, gender, method) {
         const historyList = document.getElementById('historyList');
         
         if (historyList.innerHTML.includes("결제 내역이 없습니다")) {

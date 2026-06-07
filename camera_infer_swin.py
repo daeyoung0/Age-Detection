@@ -9,10 +9,12 @@ from pathlib import Path
 import cv2
 from PIL import Image
 import torch
+import numpy as np
 
 from retinaface.pre_trained_models import get_model
 
 from src.swinface_age.dataset import build_eval_transforms, build_tta_transforms
+from src.swinface_age.gender import create_gender_classifier
 from src.swinface_age.model import load_ensemble_from_checkpoint
 
 DEFAULT_ENSEMBLE_CHECKPOINT = str(Path(__file__).resolve().with_name("ensemble_korean.pt"))
@@ -37,6 +39,9 @@ def parse_args():
     parser.add_argument("--min-face", type=int, default=80, help="Minimum face bbox size (px) to accept")
     parser.add_argument("--smooth", type=int, default=8, help="Number of recent frames to average predictions over (1 = no smoothing)")
     parser.add_argument("--clahe", action="store_true", help="Apply CLAHE contrast boost to the crop (off by default; this is a train/inference mismatch, A/B test it)")
+    parser.add_argument("--disable-gender", action="store_true", help="Disable pretrained gender estimation")
+    parser.add_argument("--gender-model", type=str, default="fairface", help="Gender model to use. Default: fairface")
+    parser.add_argument("--gender-det-size", type=int, default=320, help="Reserved for compatibility; unused by crop-based gender models")
     return parser.parse_args()
 
 
@@ -68,6 +73,32 @@ def apply_clahe(rgb):
     l, a, b = cv2.split(lab)
     l = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(l)
     return cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2RGB)
+
+
+FAIRFACE_TEMPLATE = np.array(
+    [
+        [38.2946, 51.6963],
+        [73.5318, 51.5014],
+        [56.0252, 71.7366],
+        [41.5493, 92.3655],
+        [70.7299, 92.2041],
+    ],
+    dtype=np.float32,
+)
+
+
+def align_face_for_gender(frame_rgb, landmarks, output_size=112):
+    if not landmarks or len(landmarks) != 5:
+        return None
+    src = np.array(landmarks, dtype=np.float32)
+    dst = FAIRFACE_TEMPLATE.copy()
+    if output_size != 112:
+        dst = dst * (output_size / 112.0)
+    matrix, _ = cv2.estimateAffinePartial2D(src, dst, method=cv2.LMEDS)
+    if matrix is None:
+        return None
+    aligned = cv2.warpAffine(frame_rgb, matrix, (output_size, output_size), borderValue=0.0)
+    return Image.fromarray(aligned)
 
 
 def pick_largest_face(annotations, min_score=0.8, min_size=80, max_aspect=1.5):
@@ -133,6 +164,7 @@ def predict_face_result(frame_bgr, face_model, age_model, class_names, transform
     if use_clahe:
         crop_rgb = apply_clahe(crop_rgb)
     face_crop = Image.fromarray(crop_rgb)
+    aligned_crop = align_face_for_gender(frame_rgb, face.get("landmarks", []))
     pred_class, confidence, all_probs = classify_face(face_crop, age_model, class_names, transforms, device)
     label = f"{pred_class} ({confidence:.2f})"
 
@@ -142,15 +174,105 @@ def predict_face_result(frame_bgr, face_model, age_model, class_names, transform
         "age_group": pred_class,
         "all_probs": all_probs,
         "crop": face_crop,
+        "aligned_crop": aligned_crop,
         "face_size": (x2 - x1) * (y2 - y1),
         "label": label,
         "detections": len(annotations),
     }
 
 
-def _post_worker(backend_url: str, age_group: str, face_size: int):
+def apply_age_bias(age_probs, gender_label, class_names):
+    adjusted = age_probs.copy()
+    label_to_idx = {name: idx for idx, name in enumerate(class_names)}
+
+    young_idx = label_to_idx.get("young_adult")
+    teen_idx = label_to_idx.get("teen")
+    child_idx = label_to_idx.get("child")
+    middle_idx = label_to_idx.get("middle_aged")
+    senior_idx = label_to_idx.get("senior")
+
+    if young_idx is None:
+        return age_probs
+
+    # Base correction: 20s should win more often than child/teen when the scores are close.
+    young_boost = 1.80
+    teen_dampen = 0.62
+    child_dampen = 0.55
+    middle_boost = 1.05
+
+    if gender_label == "female":
+        young_boost *= 1.08
+        teen_dampen *= 0.92
+        child_dampen *= 0.88
+        middle_boost *= 1.10
+    elif gender_label == "male":
+        young_boost *= 1.00
+        teen_dampen *= 0.96
+        child_dampen *= 0.94
+
+    adjusted[young_idx] *= young_boost
+    if middle_idx is not None:
+        adjusted[middle_idx] *= middle_boost
+    if teen_idx is not None:
+        adjusted[teen_idx] *= teen_dampen
+    if child_idx is not None:
+        adjusted[child_idx] *= child_dampen
+    if senior_idx is not None:
+        adjusted[senior_idx] *= 1.02
+
+    total = sum(adjusted)
+    if total > 0:
+        adjusted = [value / total for value in adjusted]
+
+    # Boundary rescue: if child/teen wins but young_adult is close, promote young_adult.
+    top_idx = max(range(len(adjusted)), key=lambda i: adjusted[i])
+    if top_idx in {child_idx, teen_idx}:
+        young_prob = adjusted[young_idx]
+        top_prob = adjusted[top_idx]
+        if young_prob >= top_prob * 0.80 or (top_prob - young_prob) <= 0.08:
+            boosted = adjusted.copy()
+            boosted[young_idx] *= 1.20
+            if child_idx is not None:
+                boosted[child_idx] *= 0.85
+            if teen_idx is not None:
+                boosted[teen_idx] *= 0.88
+            total = sum(boosted)
+            if total > 0:
+                boosted = [value / total for value in boosted]
+            adjusted = boosted
+
+    return adjusted
+
+
+def low_quality_face(result, min_face=80):
+    if result is None or result.get("status") != "ok":
+        return True
+    face_crop = result.get("crop")
+    if face_crop is None:
+        return True
+    if min(face_crop.size) < 64:
+        return True
+
+    gray = cv2.cvtColor(np.array(face_crop), cv2.COLOR_RGB2GRAY)
+    blur = cv2.Laplacian(gray, cv2.CV_64F).var()
+    brightness = float(gray.mean())
+    contrast = float(gray.std())
+    face_size = int(result.get("face_size", 0))
+
+    if face_size < min_face * min_face:
+        return True
+    if blur < 45:
+        return True
+    if brightness < 45 or brightness > 220:
+        return True
+    if contrast < 18:
+        return True
+    return False
+
+
+def _post_worker(backend_url: str, age_group: str, face_size: int, gender: str):
     try:
-        body = json.dumps({"age_group": age_group, "face_size": face_size}).encode()
+        body = json.dumps({"age_group": age_group, "face_size": face_size, "gender": gender}).encode()
         req = urllib.request.Request(
             f"{backend_url}/api/camera",
             data=body,
@@ -163,8 +285,8 @@ def _post_worker(backend_url: str, age_group: str, face_size: int):
         pass
 
 
-def post_to_backend(backend_url: str, age_group: str, face_size: int):
-    threading.Thread(target=_post_worker, args=(backend_url, age_group, face_size), daemon=True).start()
+def post_to_backend(backend_url: str, age_group: str, face_size: int, gender: str):
+    threading.Thread(target=_post_worker, args=(backend_url, age_group, face_size, gender), daemon=True).start()
 
 
 def main():
@@ -180,6 +302,17 @@ def main():
     age_model, class_names, image_size = load_ensemble_model(args.checkpoint, device)
     transforms = [build_eval_transforms(image_size=image_size)] if args.disable_tta else build_tta_transforms(image_size=image_size)
 
+    gender_model = None
+    if args.disable_gender:
+        print("Gender estimation: disabled")
+    else:
+        try:
+            print(f"Loading gender model: {args.gender_model}")
+            gender_model = create_gender_classifier(args.gender_model, device)
+        except Exception as exc:
+            print(f"Gender estimation unavailable: {exc}")
+            print("Continuing without gender estimation.")
+
     cap, source_name = open_capture(args)
     print(f"Camera opened: {source_name}")
     print(f"Backend: {args.backend_url}  |  POST interval: {args.post_interval}s")
@@ -189,6 +322,10 @@ def main():
     debug_idx = 0
     prob_hist = deque(maxlen=max(1, args.smooth))  # recent per-class prob vectors
     miss = 0
+    last_gender = "unknown"
+    last_gender_age = None
+    last_gender_score = 0.0
+    last_gender_refresh = 0.0
     if args.debug:
         Path("debug_crops").mkdir(exist_ok=True)
         print(f"[debug] margin={args.face_margin}  tta={'off' if args.disable_tta else 'on'}  smooth={args.smooth}  crops -> debug_crops/")
@@ -204,6 +341,13 @@ def main():
                                      use_clahe=args.clahe)
 
         if result is not None and result.get("status") == "ok":
+            if low_quality_face(result, min_face=args.min_face):
+                cv2.putText(frame, "Low quality face - skipped", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.imshow("Real-time Age Inference (Ensemble)", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+                continue
+
             x1, y1, x2, y2 = result["bbox"]
 
             # temporal smoothing: average per-class probs over recent frames so a
@@ -213,21 +357,36 @@ def main():
             mean = [sum(v[i] for v in prob_hist) / len(prob_hist) for i in range(len(class_names))]
             si = max(range(len(class_names)), key=lambda i: mean[i])
             age_group, confidence = class_names[si], mean[si]
-            label = f"{age_group} ({confidence:.2f})"
+            now = time.monotonic()
+            if gender_model is not None and now - last_gender_refresh >= args.post_interval:
+                gender_input = result["aligned_crop"] if result.get("aligned_crop") is not None else result["crop"]
+                gender_result = gender_model.predict(gender_input)
+                last_gender = gender_result.gender
+                last_gender_age = gender_result.source_age
+                last_gender_score = gender_result.match_score
+                last_gender_refresh = now
+
+            age_prob_list = apply_age_bias(list(mean), last_gender, class_names)
+            si = max(range(len(class_names)), key=lambda i: age_prob_list[i])
+            age_group, confidence = class_names[si], age_prob_list[si]
+
+            label = f"{age_group} / {last_gender} ({confidence:.2f})" if last_gender != "unknown" else f"{age_group} ({confidence:.2f})"
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(frame, label, (x1, max(30, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2, cv2.LINE_AA)
 
-            now = time.monotonic()
             if now - last_post_time >= args.post_interval:
-                post_to_backend(args.backend_url, age_group, result["face_size"])
+                post_to_backend(args.backend_url, age_group, result["face_size"], last_gender)
                 last_post_time = now
                 cv2.putText(frame, "SENT", (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 1, cv2.LINE_AA)
 
                 if args.debug:
                     raw = sorted(result["all_probs"].items(), key=lambda kv: kv[1], reverse=True)
                     dist = "  ".join(f"{k}={v:.2f}" for k, v in raw)
-                    print(f"[debug] bbox={x2-x1}x{y2-y1}px | smoothed={age_group} {confidence:.2f} | raw {dist}")
+                    print(
+                        f"[debug] bbox={x2-x1}x{y2-y1}px | smoothed={age_group} {confidence:.2f} "
+                        f"| gender={last_gender} age={last_gender_age} match={last_gender_score:.2f} | raw {dist}"
+                    )
                     crop_path = f"debug_crops/crop_{debug_idx:03d}_{result['age_group']}.jpg"
                     result["crop"].save(crop_path)
                     debug_idx += 1
@@ -237,6 +396,9 @@ def main():
             miss += 1
             if miss >= 5:
                 prob_hist.clear()
+                last_gender = "unknown"
+                last_gender_age = None
+                last_gender_score = 0.0
             status = "unknown" if result is None else result.get("status", "unknown")
             detections = 0 if result is None else result.get("detections", 0)
             cv2.putText(frame, f"Status: {status}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
