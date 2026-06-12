@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>AGE-DETECTION 판넬</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+<br>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: #ccc;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.page {
+  width: 794px;          /* A4 portrait px @96dpi */
+  min-height: 1123px;
+  background: #fff;
+  padding: 18px 20px 14px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #111;
+}
+
+/* ── HEADER ── */
+.hdr {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 2.5px solid #000;
+  padding-bottom: 7px;
+  margin-bottom: 4px;
+}
+.hdr img { width: 52px; }
+.hdr-mid { text-align: center; }
+.hdr-mid h1 {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 5px;
+  line-height: 1;
+}
+.hdr-mid .sub {
+  font-size: 9.5px;
+  color: #333;
+  margin-top: 3px;
+  font-weight: 500;
+}
+.hdr-right {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+/* ── KEY METRIC STRIP ── */
+.strip {
+  display: flex;
+  background: #1a1a2e;
+  color: #fff;
+  border-radius: 5px;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  justify-content: space-around;
+  align-items: center;
+}
+.strip-item { text-align: center; }
+.strip-item .v {
+  font-size: 13px;
+  font-weight: 900;
+  color: #f0c040;
+  white-space: nowrap;
+}
+.strip-item .l { font-size: 8px; margin-top: 1px; opacity: .85; }
+.strip-div { width: 1px; background: rgba(255,255,255,.25); height: 28px; }
+
+/* ── BODY ── */
+.body { display: grid; grid-template-columns: 1fr 280px; gap: 10px; }
+
+/* sections */
+.sec-title {
+  font-size: 15px;
+  font-weight: 900;
+  border-bottom: 2px solid #000;
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+}
+.stage-h {
+  font-size: 10.5px;
+  font-weight: 700;
+  margin: 6px 0 2px;
+}
+p { margin-bottom: 2px; }
+
+/* experiment table */
+table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 4px; }
+th {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 3px 5px;
+  text-align: left;
+  font-weight: 700;
+}
+td { padding: 3px 5px; border-bottom: 1px solid #ddd; }
+tr.final td { background: #fff3b0; font-weight: 700; }
+tr.final td:first-child::after { content: " ★"; color: #c07000; }
+
+/* F1 table */
+.f1-table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 6px; }
+.f1-table th { background: #1a1a2e; color: #fff; padding: 3px 6px; text-align: center; }
+.f1-table td { padding: 3px 6px; border-bottom: 1px solid #ddd; text-align: center; }
+.f1-table td:first-child { text-align: left; }
+.f1-table tr.low td { color: #c0392b; font-weight: 700; }
+
+/* flow */
+.flow { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.flow-box {
+  width: 100%;
+  background: #f0f0f0;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-align: center;
+}
+.flow-sub { font-size: 8px; font-weight: 400; color: #555; }
+.flow-arr { font-size: 11px; color: #444; line-height: 1; }
+
+/* POS items */
+.pos-item {
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px 7px;
+  margin-bottom: 5px;
+  font-size: 9px;
+}
+.pos-item .prod { font-weight: 700; font-size: 10px; }
+.pos-item .time { color: #888; font-size: 8px; }
+.pos-item .match { color: #c05000; font-weight: 700; font-size: 9px; margin-top: 1px; }
+
+/* trouble */
+.trouble { margin-bottom: 7px; }
+.trouble .cause { font-weight: 700; color: #c0392b; }
+.trouble .sol   { font-weight: 700; color: #1a6b3a; }
+.arrow-box {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  font-size: 9.5px;
+  margin-bottom: 3px;
+}
+.tag {
+  display: inline-block;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+.tag.bad  { background: #fde8e8; color: #c0392b; }
+.tag.good { background: #e8f5e9; color: #1a6b3a; }
+
+/* future */
+.future-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.fut {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 6px 5px;
+  text-align: center;
+  font-size: 9px;
+}
+.fut .icon { font-size: 16px; margin-bottom: 3px; }
+.fut h4 { font-size: 9.5px; font-weight: 700; margin-bottom: 3px; }
+
+/* QR */
+.qr-wrap { text-align: center; margin-top: 6px; }
+.qr-wrap p { font-size: 8.5px; color: #555; margin-top: 4px; }
+
+/* divider */
+.divider { border: none; border-top: 1px solid #ccc; margin: 8px 0; }
+
+/* callout */
+.callout {
+  background: #fff8e1;
+  border-left: 3px solid #f0a000;
+  padding: 4px 7px;
+  font-size: 9.5px;
+  margin: 4px 0;
+  border-radius: 0 4px 4px 0;
+}
+
+/* members footer */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #000;
+  padding-top: 5px;
+  margin-top: 8px;
+  font-size: 9px;
+  color: #333;
+}
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .page { box-shadow: none; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <img src="https://upload.wikimedia.org/wikipedia/ko/thumb/4/43/Hanyang_University_emblem.svg/200px-Hanyang_University_emblem.svg.png">
+    <div class="hdr-mid">
+      <h1>AGE-DETECTION</h1>
+      <div class="sub">카메라 기반 실시간 연령·성별 추정 &rarr; POS 연동 고객 분석 시스템</div>
+    </div>
+    <div class="hdr-right">TEAM<br>AGER</div>
+  </div>
+
+  <!-- KEY METRIC STRIP -->
+  <div class="strip">
+    <div class="strip-item"><div class="v">Macro-F1&nbsp;0.83</div><div class="l">최종 앙상블 성능 (한국인 val set)</div></div>
+    <div class="strip-div"></div>
+    <div class="strip-item"><div class="v">6 클래스</div><div class="l">유아·아동·청소년·청년·중장년·고령</div></div>
+    <div class="strip-div"></div>
+    <div class="strip-item"><div class="v">59,399장</div><div class="l">MORPH + AIHub 통합 데이터셋</div></div>
+    <div class="strip-div"></div>
+    <div class="strip-item"><div class="v">5모델 앙상블</div><div class="l">SwinTransformer + ConvNeXt 소프트 보팅</div></div>
+    <div class="strip-div"></div>
+    <div class="strip-item"><div class="v">실시간 POS 매칭</div><div class="l">결제 직전 2초 이내 연령대 연결</div></div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- LEFT COLUMN -->
+    <div>
+      <div class="sec-title">시스템 개발 과정</div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <div class="stage-h">1단계 &ndash; 초기 모델 탐색</div>
+          <p>처음엔 UTKFace 데이터셋으로 ResNet50 회귀 모델을 학습했지만, 회귀→그룹 변환 방식의 한계를 확인하고 직접 <b>6-class 분류</b> 구조로 전환했다.</p>
+          <p>이후 MORPH 데이터셋으로 ResNet34를 사전학습한 뒤, AIHub 한국인 데이터로 파인튜닝하는 <b>2단계 구조</b>를 설계했다.</p>
+
+          <div class="stage-h">2단계 &ndash; 데이터셋 통합 및 대규모 실험</div>
+          <p>데이터: MORPH(국제, 16–77세) + AIHub 한국인 얼굴(0–80세)을 통합해 <b>59,399장</b> 규모의 6-class 데이터셋 구성</p>
+          <div class="callout">⚠ 구조적 문제: AIHub 한국인 클래스는 인종과 나이가 함께 학습될 위험 존재</div>
+          <p>Swin Transformer, ConvNeXt, EfficientNetV2 등 다양한 모델을 실험하고, Nelder–Mead 알고리즘으로 최적 가중치를 탐색해 <b>5모델 소프트 보팅 앙상블</b> 구성</p>
+
+          <div class="stage-h">3단계 &ndash; 실제 카메라 적용 및 모델 교체</div>
+          <p>실험한 모델들을 실제 카메라에 적용하자 <b>한국인 성인 여성이 teen/child로 오인식</b>되는 문제 발생</p>
+          <p>&rarr; ConvNeXt-Large를 AIHub 한국인 데이터만으로 파인튜닝한 단독 모델로 교체해 해결</p>
+          <p>한국인 val set 기준 <b>82.7–83.3%, macro-F1 0.83</b> 달성</p>
+        </div>
+
+        <div>
+          <div class="stage-h">모델 실험 비교</div>
+          <table>
+            <thead>
+              <tr><th>실험</th><th>결과</th><th>결론</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>MIVOLO ZERO-SHOT 적용</td><td>55.6%</td><td>한국 유아·청소년 극히 취약, 사용 불가</td></tr>
+              <tr><td>VGGFace2 / InsightFace 임베딩</td><td>~71–72%</td><td>얼굴 인식 목적 모델은 나이 불변성 학습</td></tr>
+              <tr><td>ViT-Base (ImageNet21K)</td><td>72.3%</td><td>5만장 규모에서 Inductive Bias 부족</td></tr>
+              <tr><td>ResNet50 회귀→그룹 변환</td><td>낮음</td><td>직접 분류보다 경계 혼동 심함</td></tr>
+              <tr><td>Focal Loss</td><td>~61%</td><td>이 데이터셋에 명확히 부적합</td></tr>
+              <tr><td>Ordinal Soft Label Loss</td><td>75.8%</td><td>기준 모델보다 낮음, 부적합</td></tr>
+              <tr><td>TTA (3방향 평균) 적용</td><td>±~1%</td><td>단독 모델에선 유효, 실시간 주론엔 비권장</td></tr>
+              <tr><td>Swin-Base 단일 (기준)</td><td>78.94%</td><td>앙상블 기준점</td></tr>
+              <tr><td>+ConvNeXt-Base 추가</td><td>81.29%</td><td>다양한 아키텍처 조합 유효</td></tr>
+              <tr><td>+ConvNeXt-Large 추가</td><td>81.74%</td><td>단독 최고 성능 모델</td></tr>
+              <tr><td>+EfficientNetV2-M 추가</td><td>82.13%</td><td>경량 모델도 다양성 기여</td></tr>
+              <tr><td>+ConvNeXt-Large 한국 파인튜닝</td><td>82.52%</td><td>도메인 적응 효과</td></tr>
+              <tr class="final"><td>Swin-Large 교체 (최종 5모델)</td><td>83.05%</td><td>최고 앙상블 성능</td></tr>
+              <tr><td>한국 단독 파인튜닝 (최종 채택)</td><td>82.7–83.3%</td><td>인종 Confound 해결, 실제 사용에 직접</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:8px;color:#888;margin-top:3px;">★ 최종 채택 모델 강조</p>
+
+          <!-- F1 per class -->
+          <div class="stage-h" style="margin-top:8px;">클래스별 F1 Score</div>
+          <table class="f1-table">
+            <thead><tr><th>클래스</th><th>F1</th><th>클래스</th><th>F1</th></tr></thead>
+            <tbody>
+              <tr><td>INFANT</td><td>0.89</td><td>YOUNG ADULT</td><td>0.83</td></tr>
+              <tr><td>CHILD</td><td>0.89</td><td>MIDDLE AGED</td><td>0.75</td></tr>
+              <tr class="low"><td>TEEN ↓ 최저</td><td>0.79</td><td>SENIOR</td><td>0.81</td></tr>
+            </tbody>
+          </table>
+          <div class="callout" style="margin-top:4px;">TEEN F1 0.79 → 향후 데이터 보강 최우선 과제</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- 트러블슈팅 -->
+      <div class="sec-title" style="font-size:13px;">주요 실험내용 &amp; 트러블슈팅</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;">
+
+        <div>
+          <div style="font-weight:700; font-size:10px; margin-bottom:4px; text-align:center;">여성이 더 어리게 분류되는 경향</div>
+          <div class="trouble">
+            <span class="tag bad">원인</span>
+            <p>한국 여성 성인은 피부가 매끄러워 모델이 young_adult→teen으로 오분류</p>
+          </div>
+          <div class="trouble">
+            <span class="tag good">해결</span>
+            <p>FairFace 기반 성별 추정 후, 여성일 경우 young_adult 확률 ×1.45, teen ×0.75로 사후 보정</p>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-weight:700; font-size:10px; margin-bottom:4px; text-align:center;">움직이는 얼굴이 INFANT로 틤</div>
+          <div class="trouble">
+            <span class="tag bad">원인</span>
+            <p>MJPEG 압축 블러·움직임으로 디테일이 뭉개진 모델이 "매끈함=어림"으로 오분류</p>
+          </div>
+          <div class="trouble">
+            <span class="tag good">해결</span>
+            <p>RetinaFace 검출 점수 필터(0.8), 최소 얼굴 크기(80px), 블러·분산 자동 스킵, 8프레임 확률 평균</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+      <div class="sec-title">전체 시스템 구축</div>
+      <div class="flow">
+        <div class="flow-box">카메라 (웹캠 / IP카메라)</div>
+        <div class="flow-arr">↓</div>
+        <div class="flow-box">RetinaFace 얼굴 검출<div class="flow-sub">저품질·소형 박스 자동 제거</div></div>
+        <div class="flow-arr">↓</div>
+        <div class="flow-box">ConvNeXt-Large 연령대 분류<div class="flow-sub">+ 성별 추정 (FairFace)</div><div class="flow-sub">+ 최근 8프레임 확률 평균 (temporal smoothing)</div></div>
+        <div class="flow-arr">↓</div>
+        <div class="flow-box">FastAPI 백엔드 (SQLite 저장)</div>
+        <div class="flow-arr">↓</div>
+        <div class="flow-box">결제 직전 2초 내 연령대 → POS 매칭</div>
+        <div class="flow-arr">↓</div>
+        <div class="flow-box">대시보드<div class="flow-sub">(연령대별 건수·매출, 시간대별 분포)</div></div>
+      </div>
+
+      <hr class="divider">
+
+      <div style="font-weight:700; font-size:10.5px; margin-bottom:4px;">최근 결제 / 연령 매칭 이력</div>
+      <div class="pos-item">
+        <div class="prod">초코 브라우니 — 5,200원</div>
+        <div class="time">결제 승인시각 12:38:03</div>
+        <div class="match">▶ 매칭 연령: 유아/아동 (0-12)</div>
+      </div>
+      <div class="pos-item">
+        <div class="prod">아이스 아메리카노 — 2,000원</div>
+        <div class="time">결제 승인시각 12:35:23</div>
+        <div class="match">▶ 매칭 연령: 청소년 (13-18)</div>
+      </div>
+      <div class="pos-item">
+        <div class="prod">카페라테 — 5,000원</div>
+        <div class="time">결제 승인시각 12:38:13</div>
+        <div class="match">▶ 매칭 연령: 청년층 (19-34)</div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- QR -->
+      <div style="font-weight:700; font-size:10.5px; margin-bottom:4px;">GitHub &amp; 소스코드</div>
+      <div class="qr-wrap">
+        <div id="qrcode" style="display:inline-block;"></div>
+        <p>github.com/daeyoung0/Age-Detection<br>소스코드 · 모델 체크포인트 · 실행 가이드</p>
+      </div>
+    </div>
+
+  </div><!-- /body -->
+
+  <!-- FUTURE -->
+  <hr class="divider">
+  <div class="sec-title">향후 계획</div>
+  <div class="future-grid">
+    <div class="fut">
+      <div class="icon">📊</div>
+      <h4>TEEN 데이터 보강</h4>
+      <p>현재 Teen F1 0.79 — 가장 낮은 클래스. 목표 100k+ (Teen 집중)</p>
+    </div>
+    <div class="fut">
+      <div class="icon">🌙</div>
+      <h4>저조도 환경 대응</h4>
+      <p>학습 데이터에도 전처리 적용 후 재학습하면 야간·조명 불량 환경 성능 향상 기대</p>
+    </div>
+    <div class="fut">
+      <div class="icon">⚡</div>
+      <h4>모델 경량화</h4>
+      <p>엣지 디바이스 배포 대응. Knowledge Distillation 적용 검토</p>
+    </div>
+    <div class="fut">
+      <div class="icon">🔗</div>
+      <h4>POS 매칭 고도화</h4>
+      <p>현재: 결제 직전 2초 이내 마지막 연령대 단순 매칭<br>개선: 얼굴 트래킹 ID와 POS 이벤트를 직접 연결해 동시 입장 고객 구분</p>
+    </div>
+    <div class="fut">
+      <div class="icon">🗄️</div>
+      <h4>전체 데이터 확장</h4>
+      <p>현재 59k → 목표 100k+ (특히 Infant, Senior, Teen 집중)<br>데이터 품질 개선이 모델 구조 변경보다 효과적</p>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>인공지능학과 2021098904 권오준</span>
+    <span>컴퓨터학부 2020000373 김대명</span>
+    <span>컴퓨터학부 2023012024 김민환</span>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+new QRCode(document.getElementById("qrcode"), {
+  text: "https://github.com/daeyoung0/Age-Detection",
+  width: 100, height: 100,
+  colorDark: "#1a1a2e",
+  colorLight: "#ffffff",
+  correctLevel: QRCode.CorrectLevel.M
+});
+</script>
+</body>
+</html>
