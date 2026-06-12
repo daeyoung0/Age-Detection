@@ -103,39 +103,61 @@
 
 ## 프로젝트 구조
 
+파일은 역할에 따라 **① 프론트엔드 ② 백엔드 ③ 추론 ④ 모델 ⑤ 문서·설정** 다섯 갈래로 나뉩니다.
+
 ```
 Age-Detection-demo/
-├── app/                       # Next.js 프론트엔드
-│   ├── page.js                #   홈 (바로가기)
-│   ├── pos/page.js            #   POS 결제 화면
-│   ├── stats/page.js          #   통계 대시보드
-│   ├── components/top-nav.js  #   공용 상단 네비게이션
-│   ├── lib/dashboard.js       #   대시보드 데이터 헬퍼
-│   ├── layout.js
-│   └── globals.css
 │
-├── src/swinface_age/          # 연령/성별 추론 모델 패키지
-│   ├── model.py               #   Swin/VGGFace 분류기 + 앙상블 로더
-│   ├── gender.py              #   FairFace 성별 분류기
-│   └── dataset.py             #   전처리 / TTA 변환
+├── ① 프론트엔드 (Next.js) ──────────────────────────────
+│   └── app/
+│       ├── page.js                # 홈 (바로가기)
+│       ├── pos/page.js            # POS 결제 화면
+│       ├── stats/page.js          # 통계 대시보드
+│       ├── components/top-nav.js  # 공용 상단 네비게이션
+│       ├── lib/dashboard.js       # 대시보드 데이터 헬퍼
+│       ├── layout.js / globals.css
+│       ├── package.json           # Node 의존성
+│       ├── next.config.mjs / jsconfig.json
 │
-├── backend_server.py          # 로컬 백엔드 (POS/통계 API + SQLite)
-├── infer_server.py            # RunPod GPU 추론 API 서버 (모드 B)
-├── camera_infer_swin.py       # 로컬 단독 추론 스크립트 (모드 A)
-├── camera_client.py           # 카메라 클라이언트 (모드 B, 원격 GPU 추론)
-├── pipeline_swin.py           # 추론 파이프라인 유틸
-├── preview_camera.py          # 추론 없이 카메라 미리보기 (진단용)
-├── seed_data.py               # 더미 거래 데이터 생성
-├── smoke_test_camera.py       # 카메라 스모크 테스트
+├── ② 백엔드 (FastAPI + SQLite) ─────────────────────────
+│   ├── backend_server.py          # POS/통계 API, DB (로컬, 포트 8000)
+│   └── seed_data.py               # 더미 거래 데이터 생성
 │
-├── fair_face_models/          # FairFace pretrained 가중치
-├── ensemble_korean.pt         # 연령 앙상블 모델 (Git LFS, ~786MB)
+├── ③ 추론 (얼굴·연령·성별) ─────────────────────────────
+│   ├── src/swinface_age/          # 모델 패키지
+│   │   ├── model.py               #   Swin/VGGFace 분류기 + 앙상블 로더
+│   │   ├── gender.py              #   FairFace 성별 분류기
+│   │   └── dataset.py             #   전처리 / TTA 변환
+│   ├── camera_infer_swin.py       # [모드 A] 로컬 단독 추론 실행
+│   ├── camera_client.py           # [모드 B] 카메라 클라이언트 (원격 GPU)
+│   ├── infer_server.py            # [모드 B] RunPod GPU 추론 API 서버
+│   ├── pipeline_swin.py           # 추론 파이프라인 유틸
+│   ├── preview_camera.py          # 카메라 미리보기 (진단용)
+│   └── smoke_test_camera.py       # 카메라 스모크 테스트
 │
-├── requirements.txt           # Python 의존성
-├── package.json               # Node 의존성
-├── 실행가이드.md               # RunPod GPU 모드 상세 실행 가이드
-└── RUNPOD.md                  # RunPod 배포 메모
+├── ④ 모델 가중치 ───────────────────────────────────────
+│   ├── ensemble_korean.pt         # 연령 앙상블 (Git LFS, ~786MB)
+│   └── fair_face_models/          # FairFace pretrained 가중치
+│
+└── ⑤ 문서 · 설정 ──────────────────────────────────────
+    ├── README.md                  # 본 문서
+    ├── 실행가이드.md               # 모드 B(RunPod) 상세 실행 가이드
+    ├── RUNPOD.md                  # RunPod 배포 메모
+    ├── requirements.txt           # Python 의존성
+    └── .env.example               # 환경변수 예시
 ```
+
+> 위 트리는 역할별 묶음을 보여주기 위한 논리적 분류이며, 실제 파일은 모두 루트에 있습니다.
+
+### 구성 요소별 역할
+
+| # | 구성 요소 | 핵심 파일 | 실행 위치 | 포트 |
+|---|-----------|-----------|-----------|------|
+| ① | 프론트엔드 | `app/` (`npm run dev`) | 내 PC | 3000 |
+| ② | 백엔드 API | `backend_server.py` | 내 PC | 8000 |
+| ③ | 로컬 추론 (모드 A) | `camera_infer_swin.py` | 내 PC | — |
+| ③ | 원격 추론 (모드 B) | `camera_client.py` + `infer_server.py` | 내 PC + RunPod GPU | 8000 |
+| ④ | 모델 | `ensemble_korean.pt`, `fair_face_models/` | — | — |
 
 ---
 
