@@ -1,5 +1,10 @@
 # 소비자 분석 시스템 (Age Detection Consumer Analytics)
 
+> **제출 정보** *(아래 항목을 채워 주세요)*
+> - 과목명: _______________
+> - 학번 / 이름: _______________
+> - 제출일: _______________
+
 매장 카메라로 손님 얼굴을 감지해 **연령대·성별을 실시간 추정**하고, 그 결과를 **POS 결제 데이터와 자동으로 연결**하여 소비 패턴을 분석하는 대시보드 시스템입니다.
 
 > 카메라가 인식한 손님의 연령·성별 → 결제 시점 기준 **최근 2초 내 인식 결과와 매칭** → 누가(연령/성별) 무엇을 얼마에 샀는지를 통계로 집계합니다.
@@ -179,6 +184,19 @@ npm install
 git lfs install
 git lfs pull   # ensemble_korean.pt (~786MB) 다운로드
 ```
+
+### 4) (선택) 환경변수 설정
+
+기본값으로도 동작하지만, 필요하면 `.env.example`를 복사해 값을 조정합니다.
+
+```powershell
+Copy-Item .env.example .env
+```
+
+| 변수 | 기본값 | 설명 |
+|------|--------|------|
+| `ALLOWED_ORIGINS` | `*` | CORS 허용 origin(콤마 구분). 운영 시 프론트 주소로 제한 |
+| `AGE_DETECTION_DB_PATH` | `%TEMP%/age-detection-main/store_data.db` | SQLite DB 파일 경로 |
 
 ---
 

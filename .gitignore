@@ -22,6 +22,10 @@ deploy_bundle.tar
 *.tar
 runpodctl.exe
 
+# 환경변수 (.env.example 만 커밋)
+.env
+.env.local
+
 .DS_Store
 Thumbs.db
 
